@@ -2,17 +2,19 @@
 
 A full-stack premium investment platform: Next.js 16 + TypeScript + Tailwind + Prisma + Postgres + NextAuth + Stripe-ready.
 
-## 🚀 Deploy to Vercel (one click)
+## 🚀 Deploy to Vercel
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FDavidUgbor%2Fcharkin&project-name=nexvest-capital&repository-name=nexvest-capital&env=NEXTAUTH_SECRET&envDescription=Random%20secret%20-%20generate%20with%20%60openssl%20rand%20-base64%2032%60&stores=%5B%7B%22type%22%3A%22postgres%22%7D%5D)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FDavidUgbor%2Fcharkin&project-name=nexvest-capital&repository-name=nexvest-capital&env=NEXTAUTH_SECRET&envDescription=Random%20secret%20-%20generate%20with%20%60openssl%20rand%20-base64%2032%60)
 
-Clicking the button will:
-1. Clone the repo to your GitHub
-2. Provision a free Vercel Postgres database (DATABASE_URL is auto-set)
-3. Prompt you for `NEXTAUTH_SECRET` — generate one with `openssl rand -base64 32`
-4. Build, run migrations + seed, and deploy — you get a live `https://*.vercel.app` URL
+**Steps after clicking deploy:**
 
-After deploy, log in with the seeded demo account: `demo@nexvest.com` / `demo1234`.
+1. **First deploy** — Sign in with GitHub, set `NEXTAUTH_SECRET` (any 32+ char random string), click Deploy. The build will succeed but warn that DATABASE_URL is missing — the landing page works, login/dashboard won't yet.
+
+2. **Add Postgres** — In your new Vercel project: **Storage** tab → **Create Database** → **Neon (Postgres)** → Free tier → Click Connect. Vercel auto-injects `DATABASE_URL` into your project.
+
+3. **Redeploy** — **Deployments** tab → click **⋯** on the latest deploy → **Redeploy**. This time the build runs `prisma db push` + seeds the demo data.
+
+4. **Done** — Visit your `https://*.vercel.app` URL. Log in with **`demo@nexvest.com` / `demo1234`** or register a new account.
 
 ## 💻 Run Locally
 
