@@ -1,10 +1,11 @@
 import { PrismaClient } from "@prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
-import path from "path";
+import "dotenv/config";
 
-const dbPath = path.resolve(process.cwd(), "dev.db");
-const adapter = new PrismaBetterSqlite3({ url: `file:${dbPath}` });
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) throw new Error("DATABASE_URL is required for seeding");
+const adapter = new PrismaPg({ connectionString });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
@@ -40,44 +41,53 @@ async function main() {
     },
   });
 
-  await prisma.transaction.createMany({
-    data: [
-      {
-        id: "tx-demo-1",
-        userId: demo.id,
-        investmentId: inv.id,
-        type: "deposit",
-        amount: 50000,
-        status: "completed",
-        description: "Initial Gold Plan investment",
-        createdAt: new Date("2024-10-01"),
-      },
-      {
-        id: "tx-demo-2",
-        userId: demo.id,
-        investmentId: inv.id,
-        type: "payout",
-        amount: 1875,
-        status: "completed",
-        description: "Bi-weekly payout — Gold Plan",
-        createdAt: new Date("2024-11-01"),
-      },
-      {
-        id: "tx-demo-3",
-        userId: demo.id,
-        investmentId: inv.id,
-        type: "payout",
-        amount: 1875,
-        status: "completed",
-        description: "Bi-weekly payout — Gold Plan",
-        createdAt: new Date("2024-11-15"),
-      },
-    ],
-  });
+  const txData = [
+    {
+      id: "tx-demo-1",
+      userId: demo.id,
+      investmentId: inv.id,
+      type: "deposit",
+      amount: 50000,
+      status: "completed",
+      description: "Initial Gold Plan investment",
+      createdAt: new Date("2024-10-01"),
+    },
+    {
+      id: "tx-demo-2",
+      userId: demo.id,
+      investmentId: inv.id,
+      type: "payout",
+      amount: 1875,
+      status: "completed",
+      description: "Bi-weekly payout — Gold Plan",
+      createdAt: new Date("2024-11-01"),
+    },
+    {
+      id: "tx-demo-3",
+      userId: demo.id,
+      investmentId: inv.id,
+      type: "payout",
+      amount: 1875,
+      status: "completed",
+      description: "Bi-weekly payout — Gold Plan",
+      createdAt: new Date("2024-11-15"),
+    },
+  ];
+
+  for (const tx of txData) {
+    await prisma.transaction.upsert({
+      where: { id: tx.id },
+      update: {},
+      create: tx,
+    });
+  }
 
   console.log("Seed complete. Demo user: demo@nexvest.com / demo1234");
 }
 
 main()
-  .catch(console.error)
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
   .finally(() => prisma.$disconnect());
