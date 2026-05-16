@@ -20,15 +20,38 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
 
-    const res = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    })
+    let res
+    try {
+      res = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      })
+    } catch (err) {
+      setLoading(false)
+      toast.error(err instanceof Error ? err.message : "Sign-in failed")
+      return
+    }
 
     setLoading(false)
 
     if (res?.error) {
+      // Check health to give a more useful error message
+      try {
+        const h = await fetch("/api/health").then((r) => r.json())
+        if (h?.env?.DATABASE_URL === "missing") {
+          toast.error("Database not connected. Admin must add Postgres in Vercel.", { duration: 6000 })
+          return
+        }
+        if (h?.database?.connected === false) {
+          toast.error("Database connection failed: " + (h.database.error || "unknown"), { duration: 6000 })
+          return
+        }
+        if (h?.demoUser?.exists === false && email === "demo@nexvest.com") {
+          toast.error("Demo user missing. Visit /api/seed to create it.", { duration: 6000 })
+          return
+        }
+      } catch {}
       toast.error("Invalid email or password")
     } else {
       toast.success("Welcome back!")
