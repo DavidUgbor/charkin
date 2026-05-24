@@ -1,0 +1,14 @@
+.git
+.github
+.next
+node_modules
+npm-debug.log
+.env
+.env.*
+!.env.example
+README.md
+Dockerfile
+.dockerignore
+public/landing-preview.html
+public/login-preview.html
+public/register-preview.html

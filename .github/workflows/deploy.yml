@@ -1,55 +1,51 @@
-name: Deploy to Vercel
+name: Deploy
 
 on:
   push:
     branches:
       - main
       - claude/investment-platform-build-rt0Ot
-  pull_request:
-    branches:
-      - main
-
-env:
-  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
 jobs:
-  deploy:
+  # ── Option A: Deploy to Vercel ──────────────────────────────────────────────
+  deploy-vercel:
+    name: Vercel
     runs-on: ubuntu-latest
+    if: vars.DEPLOY_TARGET == 'vercel' || vars.DEPLOY_TARGET == ''
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
+      - run: npm install -g vercel@latest
+      - run: npm ci
+      - run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+      - run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
 
-      - name: Install Vercel CLI
-        run: npm install -g vercel@latest
+  # ── Option B: Build & push Docker image (for Hostless or any Docker host) ──
+  deploy-docker:
+    name: Docker / Hostless
+    runs-on: ubuntu-latest
+    if: vars.DEPLOY_TARGET == 'docker'
+    steps:
+      - uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Pull Vercel environment
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-
-      - name: Build project
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-
-      - name: Deploy to Vercel
-        id: deploy
-        run: |
-          url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
-          echo "url=$url" >> $GITHUB_OUTPUT
-
-      - name: Comment deployment URL on PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '✅ Deployed to Vercel: ${{ steps.deploy.outputs.url }}'
-            })
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+          build-args: |
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
